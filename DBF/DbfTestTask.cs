@@ -15,17 +15,30 @@ namespace DbfTests
             const string RootDir = @".\Data";
             const string RelevantFileName = "128.dbf";
 
-            // TODO read all RelevantFileName files recursively from RootDir (will be copied on build)
-            // use DbfReader to read them and extract all DataValues
-            // here an example call for one file:
-            var reader = new DbfReader();
-            var values = reader.ReadValues(@".\Data\ELEKTRO\E01\E600DI01\128.dbf");
+            // Find all files
+            string[] filePaths = Directory.GetFiles(RootDir, RelevantFileName, SearchOption.AllDirectories);
 
-            // put all DataValues into ONE ordered (by timestamp) list of OutputRow (each timestamp shall exist only once, each file should be like a column)
-            // the OutputRow has 2 lists: 1 static one for the headers (directory path of file) and one for the values (values of all files (same timestamp) must be merged into one OutputRow)
-            var outputs = new List<OutputRow>();
+            // Now load all the files
+            DbfReader reader = new DbfReader();
+            Dictionary<string, List<DbfReader.ValueRow>> filePathToValueRows = filePaths.ToDictionary(x => x, x => reader.ReadValues(x).ToList());
 
-            // if there is time left, improve example where you think it isn't good enough
+            // Create a dictionary for fast lookup
+            Dictionary<(string filePath, DateTime timestamp), double> idToValue = filePaths
+                .SelectMany(x => reader.ReadValues(x).Select(y => (filePath: x, timestamp: y.Timestamp, value: y.Value)))
+                .Distinct()
+                .ToDictionary(x => (x.filePath, x.timestamp), x => x.value);
+
+            // Transform the files into desired list of output rows
+            OutputRow.Headers = filePaths.ToList();
+            List<OutputRow> outputs = idToValue.Select(x => x.Key.timestamp).Distinct().OrderBy(x => x).Select(x => new OutputRow()
+            {
+                Timestamp = x,
+                Values = OutputRow.Headers.Select(y => idToValue.TryGetValue((y, x), out double val) ? val : (double?)null).ToList()
+            }).ToList();
+
+            // This solution is definitely not the most efficient.
+            // Many times, code efficiency goes against code readability.
+            // I prefer code readability when performance is not an issue.
 
             // the following asserts should pass
             Assert.AreEqual(25790, outputs.Count);

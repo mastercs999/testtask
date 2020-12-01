@@ -15,9 +15,6 @@ namespace DbfTests
         /// </summary>
         internal static List<string> Headers { get; set; } = new List<string>();
 
-        internal string AsTextLine()
-        {
-            return $"{Timestamp}\t{string.Join("\t", Values)}";
-        }
+        internal string AsTextLine() => $"{Timestamp}\t{string.Join("\t", Values)}";
     }
 }
