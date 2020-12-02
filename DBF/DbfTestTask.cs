@@ -18,11 +18,8 @@ namespace DbfTests
             // Find all files
             string[] filePaths = Directory.GetFiles(RootDir, RelevantFileName, SearchOption.AllDirectories);
 
-            // Now load all the files
+            // Now load all the files and create a dictionary for fast lookup
             DbfReader reader = new DbfReader();
-            Dictionary<string, List<DbfReader.ValueRow>> filePathToValueRows = filePaths.ToDictionary(x => x, x => reader.ReadValues(x).ToList());
-
-            // Create a dictionary for fast lookup
             Dictionary<(string filePath, DateTime timestamp), double> idToValue = filePaths
                 .SelectMany(x => reader.ReadValues(x).Select(y => (filePath: x, timestamp: y.Timestamp, value: y.Value)))
                 .Distinct()
